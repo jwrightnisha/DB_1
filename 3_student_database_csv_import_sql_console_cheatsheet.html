@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Database with CSV Import & SQL Console</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --accent: #0078d7;
+      --accent-soft: rgba(0, 120, 215, 0.1);
+      --border: #d6dde8;
+      --text: #1f2933;
+      --muted: #6b7280;
+      --error: #b91c1c;
+      --success: #065f46;
+    }
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 24px;
+      background: radial-gradient(circle at top left, #dbeafe, #eef2ff 40%, #f9fafb);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+    }
+    .app {
+      width: min(1100px, 100%);
+    }
+    h1 {
+      margin: 0 0 4px;
+      font-size: 1.9rem;
+      letter-spacing: 0.03em;
+    }
+    .subtitle {
+      margin: 0 0 20px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+      padding: 20px 22px;
+      margin-bottom: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      gap: 12px;
+    }
+    .card-title {
+      font-weight: 600;
+      font-size: 1.05rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pill {
+      font-size: 0.70rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid rgba(37, 99, 235, 0.5);
+    }
+    .card-body {
+      display: grid;
+      gap: 16px;
+    }
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+    }
+    label {
+      display: block;
+      font-size: 0.80rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    input[type="file"] {
+      width: 100%;
+      padding: 7px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      font-size: 0.9rem;
+      outline: none;
+      background: #f9fafb;
+    }
+    input[type="file"] {
+      padding: 6px 0;
+      border-radius: 0;
+      border: none;
+      background: transparent;
+    }
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.35);
+      background: #ffffff;
+    }
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      font-size: 0.9rem;
+      resize: vertical;
+      background: #f9fafb;
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.35);
+      background: #ffffff;
+    }
+    .hint {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      margin-top: 6px;
+    }
+    button {
+      border-radius: 999px;
+      border: none;
+      padding: 7px 16px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: transform 0.07s ease, box-shadow 0.07s ease, background 0.12s ease;
+      white-space: nowrap;
+    }
+    button.primary {
+      background: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.45);
+    }
+    button.primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 15px 32px rgba(37, 99, 235, 0.55);
+    }
+    button.secondary {
+      background: #f3f4f6;
+      color: #111827;
+      border: 1px solid #e5e7eb;
+    }
+    button.secondary:hover {
+      background: #e5e7eb;
+    }
+    button:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.87rem;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    thead {
+      background: #eff6ff;
+    }
+    th, td {
+      padding: 7px 8px;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    th {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #6b7280;
+    }
+    tbody tr:nth-child(even) {
+      background: #f9fafb;
+    }
+    tbody tr:hover {
+      background: #e5f0ff;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 16px 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      background: #ecfeff;
+      color: #0e7490;
+      border: 1px solid #a5f3fc;
+      margin-left: 4px;
+    }
+    .footer-hint {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+    /* SQL console styles */
+    #sqlResult {
+      font-size: 0.85rem;
+      margin-top: 6px;
+    }
+    #sqlResult table {
+      margin-top: 4px;
+    }
+    .sql-error {
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: #fee2e2;
+      color: var(--error);
+      border: 1px solid #fecaca;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+    }
+    .sql-info {
+      padding: 4px 10px;
+      border-radius: 999px;
+      display: inline-block;
+      margin-top: 6px;
+      background: #ecfdf3;
+      color: var(--success);
+      border: 1px solid #bbf7d0;
+      font-size: 0.78rem;
+    }
+    code {
+      background: #e5e7eb;
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+    .code-block {
+      background: #020617;
+      color: #e5e7eb;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.8rem;
+      overflow-x: auto;
+      line-height: 1.4;
+      border: 1px solid #1f2937;
+    }
+    .code-block code {
+      background: transparent;
+      padding: 0;
+      border-radius: 0;
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.8rem;
+      color: inherit;
+    }
+    .code-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #9ca3af;
+      margin-bottom: 4px;
+    }
+    .toggle-link {
+      font-size: 0.8rem;
+      cursor: pointer;
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    @media (max-width: 640px) {
+      body {
+        padding: 16px;
+      }
+      .card {
+        padding: 14px 14px 16px;
+      }
+      h1 {
+        font-size: 1.4rem;
+      }
+    }
+  </style>
+  <!-- AlaSQL library for in-browser SQL over JavaScript data -->
+  <script src="https://cdn.jsdelivr.net/npm/alasql@4.9.0/dist/alasql.min.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header style="margin-bottom: 16px;">
+      <h1>Student Database</h1>
+      <p class="subtitle">
+        Add students manually, import them from CSV, and run SQL queries against the in-memory
+        <code>students</code> table.
+      </p>
+    </header>
+
+    <!-- Manual entry card -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">
+          Manual Entry
+          <span class="pill">Single Student</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="two-col">
+          <div>
+            <label for="idInput">Student ID</label>
+            <input id="idInput" type="number" placeholder="e.g., 101">
+          </div>
+          <div>
+            <label for="gradeInput">Grade</label>
+            <input id="gradeInput" type="number" placeholder="e.g., 11">
+          </div>
+        </div>
+        <div class="two-col">
+          <div>
+            <label for="firstNameInput">First Name</label>
+            <input id="firstNameInput" type="text" placeholder="e.g., Emma">
+          </div>
+          <div>
+            <label for="lastNameInput">Last Name</label>
+            <input id="lastNameInput" type="text" placeholder="e.g., Thompson">
+          </div>
+        </div>
+        <div class="two-col">
+          <div>
+            <label for="averageInput">Average</label>
+            <input id="averageInput" type="number" step="0.1" placeholder="e.g., 87.5">
+            <p class="hint">Use the same average values as your CSV (e.g., 83.2).</p>
+          </div>
+          <div class="btn-row">
+            <button id="addStudentBtn" class="primary">
+              + Add Student
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CSV import card -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">
+          CSV Import
+          <span class="pill">Bulk Upload</span>
+        </div>
+        <span class="tag">Format: id, first_name, last_name, grade, average</span>
+      </div>
+      <div class="card-body">
+        <div>
+          <label for="csvFile">Select CSV File</label>
+          <input type="file" id="csvFile" accept=".csv">
+          <p class="hint">
+            The first row must be a header containing:
+            <strong>id, first_name, last_name, grade, average</strong>.
+          </p>
+        </div>
+        <div class="btn-row">
+          <button id="importCsvBtn" class="secondary">
+            Import CSV
+          </button>
+          <button id="clearStudentsBtn" class="secondary">
+            Clear All
+          </button>
+        </div>
+        <p class="footer-hint">
+          After importing, all rows will be added to the in-memory student database and shown in the table below.
+        </p>
+      </div>
+    </section>
+
+    <!-- SQL console card -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">
+          SQL Console
+          <span class="pill">Run Queries</span>
+        </div>
+        <span class="tag">Table: students</span>
+      </div>
+      <div class="card-body">
+        <div>
+          <label for="sqlInput">SQL Statement</label>
+          <textarea id="sqlInput" placeholder="Try: SELECT * FROM students WHERE grade = 11 ORDER BY average DESC;"></textarea>
+          <p class="hint">
+            Each time you run a query, AlaSQL rebuilds an in-memory table called
+            <code>students</code> from the data below. Use standard SQL:
+            <code>SELECT * FROM students WHERE average &gt;= 80;</code>
+          </p>
+        </div>
+        <div class="btn-row">
+          <button id="runSqlBtn" class="primary">Run SQL</button>
+          <button id="clearSqlBtn" class="secondary">Clear</button>
+        </div>
+        <div id="sqlResult"></div>
+      </div>
+    </section>
+
+    <!-- SQL cheat sheet card -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">
+          SQL Cheat Sheet
+          <span class="pill">Examples for Students</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div>
+          <p class="hint">
+            These examples all query the same <code>students</code> table that you see in the main grid.
+            You can copy/paste them into the SQL Console above.
+          </p>
+
+          <div>
+            <div class="code-label">1. Show all students</div>
+            <div class="code-block"><code>SELECT *<br>FROM students;</code></div>
+          </div>
+
+          <div>
+            <div class="code-label">2. Filter by grade</div>
+            <div class="code-block"><code>SELECT *<br>FROM students<br>WHERE grade = 11;</code></div>
+          </div>
+
+          <div>
+            <div class="code-label">3. Order by average (highest first)</div>
+            <div class="code-block"><code>SELECT first_name, last_name, grade, average<br>FROM students<br>ORDER BY average DESC;</code></div>
+          </div>
+
+          <div>
+            <div class="code-label">4. Only students with 80% or higher</div>
+            <div class="code-block"><code>SELECT first_name, last_name, average<br>FROM students<br>WHERE average &gt;= 80<br>ORDER BY average DESC;</code></div>
+          </div>
+
+          <div>
+            <div class="code-label">5. Count students in each grade</div>
+            <div class="code-block"><code>SELECT grade, COUNT(*) AS count<br>FROM students<br>GROUP BY grade<br>ORDER BY grade;</code></div>
+          </div>
+
+          <div>
+            <div class="code-label">6. Average mark by grade</div>
+            <div class="code-block"><code>SELECT grade, AVG(average) AS avg_mark<br>FROM students<br>GROUP BY grade<br>ORDER BY grade;</code></div>
+          </div>
+        </div>
+
+        <div>
+          <span id="toggleEngineBtn" class="toggle-link">Show engine setup (CREATE TABLE / INSERT)</span>
+          <div id="engineCode" style="display:none; margin-top:10px;">
+            <p class="hint">
+              Behind the scenes, JavaScript rebuilds the AlaSQL table each time you run a query.
+              This is roughly how the engine is prepared from the <code>students</code> array:
+            </p>
+            <div class="code-block">
+              <code>
+// Drop &amp; recreate table
+DROP TABLE IF EXISTS students;
+CREATE TABLE students (
+  id INT,
+  first_name STRING,
+  last_name STRING,
+  grade INT,
+  average FLOAT
+);
+
+// Insert rows from JavaScript array
+INSERT INTO students
+SELECT * FROM ?;   -- the ? is replaced with an array of JS objects
+              </code>
+            </div>
+            <p class="hint">
+              In JavaScript, this happens via:
+            </p>
+            <div class="code-block">
+              <code>const data = students.map(s =&gt; ({<br>
+&nbsp;&nbsp;id: s.id,<br>
+&nbsp;&nbsp;first_name: s.firstName,<br>
+&nbsp;&nbsp;last_name: s.lastName,<br>
+&nbsp;&nbsp;grade: s.grade,<br>
+&nbsp;&nbsp;average: s.average<br>
+}));<br><br>
+alasql("INSERT INTO students SELECT * FROM ?", [data]);</code>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Table card -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">
+          Students
+          <span class="pill" id="studentCountPill">0 Students</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div style="overflow-x:auto;">
+          <table id="studentTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Grade</th>
+                <th>Average</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- rows injected by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+        <div id="emptyState" class="empty-state">
+          No students yet. Add one manually or import from a CSV file.
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // Student "class"
+    class Student {
+      constructor(id, firstName, lastName, grade, average) {
+        this.id = id;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.grade = grade;
+        this.average = average;
+      }
+    }
+
+    // In-memory student database
+    const students = [];
+
+    // DOM references
+    const idInput = document.getElementById("idInput");
+    const firstNameInput = document.getElementById("firstNameInput");
+    const lastNameInput = document.getElementById("lastNameInput");
+    const gradeInput = document.getElementById("gradeInput");
+    const averageInput = document.getElementById("averageInput");
+
+    const studentTableBody = document.querySelector("#studentTable tbody");
+    const emptyState = document.getElementById("emptyState");
+    const studentCountPill = document.getElementById("studentCountPill");
+
+    const sqlInput = document.getElementById("sqlInput");
+    const sqlResult = document.getElementById("sqlResult");
+
+    const toggleEngineBtn = document.getElementById("toggleEngineBtn");
+    const engineCode = document.getElementById("engineCode");
+
+    // Render function
+    function renderStudents() {
+      studentTableBody.innerHTML = "";
+
+      if (students.length === 0) {
+        emptyState.style.display = "block";
+        studentCountPill.textContent = "0 Students";
+        return;
+      }
+
+      emptyState.style.display = "none";
+      studentCountPill.textContent = students.length === 1
+        ? "1 Student"
+        : students.length + " Students";
+
+      students.forEach(stu => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${stu.id}</td>
+          <td>${stu.firstName}</td>
+          <td>${stu.lastName}</td>
+          <td>${stu.grade}</td>
+          <td>${stu.average}</td>
+        `;
+        studentTableBody.appendChild(tr);
+      });
+    }
+
+    // Add student manually
+    document.getElementById("addStudentBtn").addEventListener("click", () => {
+      const idVal = parseInt(idInput.value, 10);
+      const firstNameVal = firstNameInput.value.trim();
+      const lastNameVal = lastNameInput.value.trim();
+      const gradeVal = parseInt(gradeInput.value, 10);
+      const avgVal = parseFloat(averageInput.value);
+
+      if (
+        Number.isNaN(idVal) ||
+        !firstNameVal ||
+        !lastNameVal ||
+        Number.isNaN(gradeVal) ||
+        Number.isNaN(avgVal)
+      ) {
+        alert("Please fill in all fields with valid values.");
+        return;
+      }
+
+      const s = new Student(idVal, firstNameVal, lastNameVal, gradeVal, avgVal);
+      students.push(s);
+
+      // Clear inputs
+      idInput.value = "";
+      firstNameInput.value = "";
+      lastNameInput.value = "";
+      gradeInput.value = "";
+      averageInput.value = "";
+
+      renderStudents();
+    });
+
+    // Clear all students
+    document.getElementById("clearStudentsBtn").addEventListener("click", () => {
+      if (!confirm("Clear all students from the in-memory database?")) {
+        return;
+      }
+      students.length = 0;
+      renderStudents();
+    });
+
+    // CSV import button handler
+    document.getElementById("importCsvBtn").addEventListener("click", () => {
+      const fileInput = document.getElementById("csvFile");
+      const file = fileInput.files[0];
+
+      if (!file) {
+        alert("Please choose a CSV file first.");
+        return;
+      }
+
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        const csvText = e.target.result;
+        importFromCsv(csvText);
+      };
+
+      reader.onerror = () => {
+        alert("There was an error reading the CSV file.");
+      };
+
+      reader.readAsText(file);
+    });
+
+    // Import CSV using header row: id, first_name, last_name, grade, average
+    function importFromCsv(csvText) {
+      const lines = csvText.trim().split(/\r?\n/);
+
+      if (lines.length < 2) {
+        alert("CSV file seems to be empty or missing data rows.");
+        return;
+      }
+
+      // header
+      const header = lines[0].split(",").map(h => h.trim());
+
+      const idx = {
+        id: header.indexOf("id"),
+        firstName: header.indexOf("first_name"),
+        lastName: header.indexOf("last_name"),
+        grade: header.indexOf("grade"),
+        average: header.indexOf("average")
+      };
+
+      if (
+        idx.id === -1 ||
+        idx.firstName === -1 ||
+        idx.lastName === -1 ||
+        idx.grade === -1 ||
+        idx.average === -1
+      ) {
+        alert("CSV format is not correct. Expected header: id, first_name, last_name, grade, average.");
+        return;
+      }
+
+      let importedCount = 0;
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const cols = line.split(",").map(c => c.trim());
+
+        const idVal = parseInt(cols[idx.id], 10);
+        const firstNameVal = cols[idx.firstName];
+        const lastNameVal = cols[idx.lastName];
+        const gradeVal = parseInt(cols[idx.grade], 10);
+        const avgVal = parseFloat(cols[idx.average]);
+
+        if (
+          Number.isNaN(idVal) ||
+          !firstNameVal ||
+          !lastNameVal ||
+          Number.isNaN(gradeVal) ||
+          Number.isNaN(avgVal)
+        ) {
+          // skip invalid row
+          continue;
+        }
+
+        const s = new Student(idVal, firstNameVal, lastNameVal, gradeVal, avgVal);
+        students.push(s);
+        importedCount++;
+      }
+
+      if (importedCount === 0) {
+        alert("No valid rows were imported. Please check the CSV contents.");
+      } else {
+        alert("Imported " + importedCount + " student" + (importedCount === 1 ? "" : "s") + " from CSV.");
+      }
+
+      renderStudents();
+    }
+
+    // --- SQL console ---
+
+    // Build AlaSQL table from current students[] each time we run SQL
+    function syncStudentsToAlaSql() {
+      alasql("DROP TABLE IF EXISTS students");
+      alasql("CREATE TABLE students (id INT, first_name STRING, last_name STRING, grade INT, average FLOAT)");
+
+      const data = students.map(s => ({
+        id: s.id,
+        first_name: s.firstName,
+        last_name: s.lastName,
+        grade: s.grade,
+        average: s.average
+      }));
+
+      // Insert all rows at once
+      alasql("INSERT INTO students SELECT * FROM ?", [data]);
+    }
+
+    function runSql() {
+      const sql = sqlInput.value.trim();
+      sqlResult.innerHTML = "";
+
+      if (!sql) {
+        const div = document.createElement("div");
+        div.className = "sql-error";
+        div.textContent = "Please enter an SQL statement.";
+        sqlResult.appendChild(div);
+        return;
+      }
+
+      // Rebuild the AlaSQL table from the current JS array
+      syncStudentsToAlaSql();
+
+      try {
+        const res = alasql(sql);
+
+        if (Array.isArray(res)) {
+          if (res.length === 0) {
+            const info = document.createElement("div");
+            info.className = "sql-info";
+            info.textContent = "Query executed successfully. 0 rows returned.";
+            sqlResult.appendChild(info);
+            return;
+          }
+
+          const table = document.createElement("table");
+          const thead = document.createElement("thead");
+          const tbody = document.createElement("tbody");
+
+          const keys = Object.keys(res[0]);
+
+          const headRow = document.createElement("tr");
+          keys.forEach(k => {
+            const th = document.createElement("th");
+            th.textContent = k;
+            headRow.appendChild(th);
+          });
+          thead.appendChild(headRow);
+
+          res.forEach(row => {
+            const tr = document.createElement("tr");
+            keys.forEach(k => {
+              const td = document.createElement("td");
+              td.textContent = row[k];
+              tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+          });
+
+          table.appendChild(thead);
+          table.appendChild(tbody);
+          sqlResult.appendChild(table);
+
+          const info = document.createElement("div");
+          info.className = "sql-info";
+          info.textContent = res.length + " row" + (res.length !== 1 ? "s" : "") + " returned.";
+          sqlResult.appendChild(info);
+        } else {
+          const info = document.createElement("div");
+          info.className = "sql-info";
+          info.textContent = "Statement executed.";
+          sqlResult.appendChild(info);
+        }
+      } catch (err) {
+        const errorDiv = document.createElement("div");
+        errorDiv.className = "sql-error";
+        errorDiv.textContent = "Error: " + err.message;
+        sqlResult.appendChild(errorDiv);
+      }
+    }
+
+    document.getElementById("runSqlBtn").addEventListener("click", runSql);
+
+    document.getElementById("clearSqlBtn").addEventListener("click", () => {
+      sqlInput.value = "";
+      sqlResult.innerHTML = "";
+    });
+
+    // Allow Ctrl+Enter or Cmd+Enter to run SQL
+    sqlInput.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        runSql();
+      }
+    });
+
+    // Toggle engine setup code visibility
+    toggleEngineBtn.addEventListener("click", () => {
+      const isHidden = engineCode.style.display === "none" || engineCode.style.display === "";
+      engineCode.style.display = isHidden ? "block" : "none";
+      toggleEngineBtn.textContent = isHidden
+        ? "Hide engine setup (CREATE TABLE / INSERT)"
+        : "Show engine setup (CREATE TABLE / INSERT)";
+    });
+
+    // Initial render
+    renderStudents();
+  </script>
+</body>
+</html>

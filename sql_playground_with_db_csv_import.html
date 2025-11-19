@@ -1,0 +1,649 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SQL + JavaScript Playground</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- sql.js (SQLite compiled to WebAssembly) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
+
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --card: #ffffff;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --error: #b91c1c;
+      --radius: 12px;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top left, #e0ecff, #f4f6fb);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px;
+      color: var(--text);
+    }
+    .card {
+      width: min(960px, 100%);
+      background: var(--card);
+      padding: 20px 24px 24px;
+      border-radius: var(--radius);
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+      border: 1px solid var(--border);
+    }
+    h1 {
+      margin: 0 0 4px;
+      font-size: 1.6rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    h1 span.badge {
+      font-size: 0.75rem;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-weight: 600;
+    }
+    p.subtitle {
+      margin: 0 0 16px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 800px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+    label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 6px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      resize: vertical;
+      font-family: "Cascadia Code", "Fira Code", monospace;
+      font-size: 0.9rem;
+      background: #f9fafb;
+    }
+    textarea:focus {
+      outline: 2px solid var(--accent-soft);
+      border-color: var(--accent);
+      background: #ffffff;
+    }
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+      margin-bottom: 6px;
+    }
+    button {
+      border-radius: 999px;
+      border: none;
+      padding: 7px 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    button.primary {
+      background: var(--accent);
+      color: #ffffff;
+    }
+    button.secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+    button.small {
+      padding: 4px 10px;
+      font-size: 0.75rem;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .status {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .status span.ready {
+      color: #15803d;
+    }
+    .status span.loading {
+      color: #b45309;
+    }
+    .status span.error {
+      color: var(--error);
+    }
+    .help-box {
+      background: #f9fafb;
+      border-radius: 10px;
+      border: 1px dashed var(--border);
+      padding: 10px 12px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .help-box code {
+      background: #e5e7eb;
+      border-radius: 6px;
+      padding: 1px 4px;
+      font-size: 0.75rem;
+    }
+    .results-card {
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      background: #f9fafb;
+      max-height: 420px;
+      overflow: auto;
+      font-size: 0.85rem;
+    }
+    table {
+      border-collapse: collapse;
+      min-width: 100%;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 4px 6px;
+      text-align: left;
+      font-size: 0.8rem;
+    }
+    th {
+      background: #e5e7eb;
+      font-weight: 700;
+    }
+    .error-message {
+      color: var(--error);
+      margin: 4px 0;
+      font-size: 0.8rem;
+      white-space: pre-wrap;
+    }
+    .empty-message {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>
+      SQL + JavaScript Playground
+      <span class="badge">SQLite in your browser</span>
+    </h1>
+    <p class="subtitle">
+      Type SQL commands like <code>INSERT</code>, <code>SELECT</code>, <code>UPDATE</code> and see the results below.
+      The database runs entirely in your browser – perfect for practice in a lab.
+    </p>
+
+    <div class="layout">
+      <!-- Left: SQL input + controls -->
+      <div>
+        <label for="sql-input">SQL Command(s)</label>
+        <textarea id="sql-input" spellcheck="false">
+-- Try some of these:
+-- SELECT * FROM Students;
+-- SELECT first_name, last_name, average FROM Students WHERE grade = 11;
+-- INSERT INTO Students (first_name, last_name, grade, average)
+--   VALUES ('Elliot', 'Ramirez', 11, 86.2);
+
+SELECT * FROM Students;
+        </textarea>
+
+        <div class="buttons">
+          <button id="run-btn" class="primary">
+            ▶ Run SQL
+          </button>
+          <button id="reset-btn" class="secondary">
+            ↺ Reset Database
+          </button>
+          <button id="save-btn" class="secondary">
+            💾 Save DB
+          </button>
+          <button id="load-btn" class="secondary">
+            ⭳ Load DB
+          </button>
+          <button id="export-csv-btn" class="secondary">
+            📄 Export Students as CSV
+          </button>
+          <button id="import-csv-btn" class="secondary">
+            📥 Import Students from CSV
+          </button>
+          <button id="example-select" class="secondary small">
+            Example: Grade 12
+          </button>
+          <button id="example-insert" class="secondary small">
+            Example: Insert Student
+          </button>
+        </div>
+
+        <!-- Hidden inputs for loading DB and CSV files -->
+        <input type="file" id="load-input" accept=".db,.sqlite,application/octet-stream" style="display:none" />
+        <input type="file" id="import-csv-input" accept=".csv,text/csv" style="display:none" />
+
+        <div class="status" id="status">
+          <span class="loading">Loading SQL engine…</span>
+        </div>
+
+        <div class="help-box">
+          <strong>Schema:</strong>
+          <br />Table <code>Students</code>
+          <br /><code>(id INTEGER PRIMARY KEY, first_name TEXT, last_name TEXT, grade INTEGER, average REAL)</code>
+          <br /><br />
+          Example queries:
+          <br />• <code>SELECT * FROM Students;</code>
+          <br />• <code>SELECT first_name, average FROM Students WHERE grade = 11;</code>
+          <br />• <code>UPDATE Students SET average = 92 WHERE id = 1;</code>
+          <br />• <code>DELETE FROM Students WHERE last_name = 'Lopez';</code>
+          <br /><br />
+          You can <strong>Save DB</strong> to download your work as a binary SQLite file,
+          <strong>Load DB</strong> later to continue where you left off,
+          <strong>Export Students as CSV</strong> to open in Notepad or Excel,
+          or <strong>Import Students from CSV</strong> to replace the Students table from a CSV file.
+        </div>
+      </div>
+
+      <!-- Right: Results -->
+      <div>
+        <label>Results</label>
+        <div class="results-card" id="results">
+          <div class="empty-message">Run a query to see results here.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let db = null;
+    let sqlReady = false;
+    let SQLInstance = null; // keep a reference to the SQL factory
+
+    const statusEl        = document.getElementById('status');
+    const runBtn          = document.getElementById('run-btn');
+    const resetBtn        = document.getElementById('reset-btn');
+    const saveBtn         = document.getElementById('save-btn');
+    const loadBtn         = document.getElementById('load-btn');
+    const exportCsvBtn    = document.getElementById('export-csv-btn');
+    const importCsvBtn    = document.getElementById('import-csv-btn');
+    const loadInput       = document.getElementById('load-input');
+    const importCsvInput  = document.getElementById('import-csv-input');
+    const resultsEl       = document.getElementById('results');
+    const sqlInput        = document.getElementById('sql-input');
+
+    runBtn.disabled        = true;
+    resetBtn.disabled      = true;
+    saveBtn.disabled       = true;
+    loadBtn.disabled       = true;
+    exportCsvBtn.disabled  = true;
+    importCsvBtn.disabled  = true;
+
+    // Initialize SQL.js (SQLite engine)
+    initSqlJs({
+      locateFile: file =>
+        "https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/" + file
+    }).then(SQL => {
+      SQLInstance = SQL;
+      db = new SQLInstance.Database();
+      seedDatabase();
+      sqlReady = true;
+
+      runBtn.disabled        = false;
+      resetBtn.disabled      = false;
+      saveBtn.disabled       = false;
+      loadBtn.disabled       = false;
+      exportCsvBtn.disabled  = false;
+      importCsvBtn.disabled  = false;
+
+      statusEl.innerHTML = '<span class="ready">Database ready. You can run SQL commands.</span>';
+    }).catch(err => {
+      console.error(err);
+      statusEl.innerHTML = '<span class="error">Error loading SQL engine: ' + err.message + '</span>';
+    });
+
+    function seedDatabase() {
+      if (!db) return;
+      const createAndSeed = `
+        DROP TABLE IF EXISTS Students;
+        CREATE TABLE Students (
+          id INTEGER PRIMARY KEY,
+          first_name TEXT,
+          last_name  TEXT,
+          grade      INTEGER,
+          average    REAL
+        );
+        INSERT INTO Students (first_name, last_name, grade, average) VALUES
+          ('Alex',   'Nguyen',   11, 82.5),
+          ('Brianna','Singh',    12, 90.0),
+          ('Carlos', 'Lopez',    11, 75.3),
+          ('Dina',   'Martinez', 12, 88.1);
+      `;
+      db.run(createAndSeed);
+    }
+
+    function renderResults(results) {
+      if (!results || results.length === 0) {
+        resultsEl.innerHTML = '<div class="empty-message">No result set (statement executed successfully).</div>';
+        return;
+      }
+
+      let html = '';
+      results.forEach((r, idx) => {
+        if (results.length > 1) {
+          html += '<div class="empty-message">Result set ' + (idx + 1) + '</div>';
+        }
+        html += '<table><thead><tr>';
+        r.columns.forEach(col => {
+          html += '<th>' + escapeHtml(col) + '</th>';
+        });
+        html += '</tr></thead><tbody>';
+        r.values.forEach(row => {
+          html += '<tr>';
+          row.forEach(val => {
+            html += '<td>' + escapeHtml(val) + '</td>';
+          });
+          html += '</tr>';
+        });
+        html += '</tbody></table>';
+      });
+
+      resultsEl.innerHTML = html;
+    }
+
+    function escapeHtml(value) {
+      if (value === null || value === undefined) return '';
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    runBtn.addEventListener('click', () => {
+      if (!sqlReady || !db) return;
+      const sql = sqlInput.value.trim();
+      if (!sql) return;
+
+      try {
+        const results = db.exec(sql); // exec can handle multiple statements
+        renderResults(results);
+        statusEl.innerHTML = '<span class="ready">Query executed successfully.</span>';
+      } catch (err) {
+        console.error(err);
+        resultsEl.innerHTML = '<div class="error-message">' + escapeHtml(err.message) + '</div>';
+        statusEl.innerHTML = '<span class="error">Error running query.</span>';
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      if (!sqlReady || !db) return;
+      seedDatabase();
+      resultsEl.innerHTML = '<div class="empty-message">Database reset. Try <code>SELECT * FROM Students;</code></div>';
+      statusEl.innerHTML = '<span class="ready">Database reset.</span>';
+    });
+
+    // SAVE: export DB to a .db file (binary SQLite)
+    saveBtn.addEventListener('click', () => {
+      if (!sqlReady || !db) return;
+      try {
+        const binaryArray = db.export(); // Uint8Array
+        const blob = new Blob([binaryArray], { type: "application/octet-stream" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "students.db";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        statusEl.innerHTML = '<span class="ready">Database saved as <code>students.db</code>.</span>';
+      } catch (err) {
+        console.error(err);
+        statusEl.innerHTML = '<span class="error">Error saving database: ' + escapeHtml(err.message) + '</span>';
+      }
+    });
+
+    // LOAD: open file picker for .db
+    loadBtn.addEventListener('click', () => {
+      if (!sqlReady) return;
+      loadInput.click();
+    });
+
+    // When a .db file is chosen, read and load into a new database
+    loadInput.addEventListener('change', () => {
+      const file = loadInput.files[0];
+      if (!file || !SQLInstance) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const uInt = new Uint8Array(reader.result);
+          if (db) {
+            db.close();
+          }
+          db = new SQLInstance.Database(uInt);
+          statusEl.innerHTML = '<span class="ready">Database loaded from file.</span>';
+          try {
+            const results = db.exec("SELECT name FROM sqlite_master WHERE type='table';");
+            renderResults(results);
+          } catch (e) {
+            resultsEl.innerHTML = '<div class="empty-message">Database loaded. Run a query to see results.</div>';
+          }
+        } catch (err) {
+          console.error(err);
+          statusEl.innerHTML = '<span class="error">Error loading database: ' + escapeHtml(err.message) + '</span>';
+        } finally {
+          loadInput.value = "";
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    // Helper to escape CSV fields (handles commas, quotes, newlines)
+    function escapeCsvField(value) {
+      if (value === null || value === undefined) return "";
+      const s = String(value);
+      if (/[",\r\n]/.test(s)) {
+        return '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    }
+
+    // EXPORT: Students table as CSV text
+    exportCsvBtn.addEventListener('click', () => {
+      if (!sqlReady || !db) return;
+
+      try {
+        const result = db.exec("SELECT * FROM Students;");
+        if (!result || result.length === 0) {
+          statusEl.innerHTML = '<span class="error">No Students table or no data to export.</span>';
+          return;
+        }
+
+        const r = result[0];
+        const headers = r.columns;
+        const rows = r.values;
+
+        const lines = [];
+        lines.push(headers.map(escapeCsvField).join(","));
+        rows.forEach(row => {
+          lines.push(row.map(escapeCsvField).join(","));
+        });
+
+        const csvText = lines.join("\r\n");
+        const blob = new Blob([csvText], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "students.csv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        statusEl.innerHTML = '<span class="ready">Students exported as <code>students.csv</code>.</span>';
+      } catch (err) {
+        console.error(err);
+        statusEl.innerHTML = '<span class="error">Error exporting CSV: ' + escapeHtml(err.message) + '</span>';
+      }
+    });
+
+    // IMPORT CSV: replaces Students table with contents of CSV (Option A)
+    importCsvBtn.addEventListener('click', () => {
+      if (!sqlReady) return;
+      importCsvInput.click();
+    });
+
+    importCsvInput.addEventListener('change', () => {
+      const file = importCsvInput.files[0];
+      if (!file || !db) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const text = reader.result;
+          const rows = parseCsv(text);
+          if (!rows || rows.length < 2) {
+            statusEl.innerHTML = '<span class="error">CSV file appears to be empty or malformed.</span>';
+            importCsvInput.value = "";
+            return;
+          }
+
+          const headers = rows[0].map(h => String(h).trim().toLowerCase());
+          const idxId        = headers.indexOf("id");
+          const idxFirstName = headers.indexOf("first_name");
+          const idxLastName  = headers.indexOf("last_name");
+          const idxGrade     = headers.indexOf("grade");
+          const idxAverage   = headers.indexOf("average");
+
+          if (idxFirstName === -1 || idxLastName === -1 || idxGrade === -1 || idxAverage === -1) {
+            statusEl.innerHTML = '<span class="error">CSV must contain headers: id, first_name, last_name, grade, average.</span>';
+            importCsvInput.value = "";
+            return;
+          }
+
+          // Replace Students data (Option A)
+          db.run("DELETE FROM Students;");
+
+          const stmt = db.prepare("INSERT INTO Students (id, first_name, last_name, grade, average) VALUES (?, ?, ?, ?, ?);");
+
+          for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row || row.length === 0 || row.every(v => String(v).trim() === "")) continue;
+
+            const idRaw      = idxId >= 0 ? row[idxId] : "";
+            const fnRaw      = row[idxFirstName] ?? "";
+            const lnRaw      = row[idxLastName] ?? "";
+            const gradeRaw   = row[idxGrade] ?? "";
+            const averageRaw = row[idxAverage] ?? "";
+
+            const id      = String(idRaw).trim() === "" ? null : Number.parseInt(idRaw, 10);
+            const grade   = String(gradeRaw).trim() === "" ? null : Number.parseInt(gradeRaw, 10);
+            const average = String(averageRaw).trim() === "" ? null : Number.parseFloat(averageRaw);
+
+            stmt.run([id, fnRaw, lnRaw, grade, average]);
+          }
+
+          stmt.free();
+
+          statusEl.innerHTML = '<span class="ready">Students table replaced from CSV file.</span>';
+          try {
+            const results = db.exec("SELECT * FROM Students;");
+            renderResults(results);
+          } catch (e) {
+            resultsEl.innerHTML = '<div class="empty-message">Students imported. Run a query to see results.</div>';
+          }
+        } catch (err) {
+          console.error(err);
+          statusEl.innerHTML = '<span class="error">Error importing CSV: ' + escapeHtml(err.message) + '</span>';
+        } finally {
+          importCsvInput.value = "";
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    // Simple CSV parser supporting quotes and commas
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let field = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+
+        if (char === '"') {
+          if (inQuotes && text[i + 1] === '"') {
+            field += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          row.push(field);
+          field = "";
+        } else if ((char === '\n' || char === '\r') && !inQuotes) {
+          if (char === '\r' && text[i + 1] === '\n') {
+            i++;
+          }
+          row.push(field);
+          field = "";
+          if (row.length > 1 || (row.length === 1 && row[0] !== "")) {
+            rows.push(row);
+          }
+          row = [];
+        } else {
+          field += char;
+        }
+      }
+
+      if (field.length > 0 || row.length > 0) {
+        row.push(field);
+        rows.push(row);
+      }
+
+      return rows;
+    }
+
+    // Example buttons to help students
+    document.getElementById('example-select').addEventListener('click', () => {
+      sqlInput.value = "SELECT first_name, last_name, average\nFROM Students\nWHERE grade = 12\nORDER BY average DESC;";
+    });
+
+    document.getElementById('example-insert').addEventListener('click', () => {
+      sqlInput.value =
+        "INSERT INTO Students (first_name, last_name, grade, average)\n" +
+        "VALUES ('New', 'Student', 11, 79.5);\n\n" +
+        "SELECT * FROM Students;";
+    });
+  </script>
+</body>
+</html>
